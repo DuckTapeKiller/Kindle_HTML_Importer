@@ -63,15 +63,16 @@ export default class KindleHighlightsPlugin extends Plugin {
 		});
 
 		const frontmatter = `---
-Título: "${bookTitle}"
-Autor: "${author}"
-Notas: ${highlightsCounter}
-Origen: Kindle
+título: "${bookTitle}"
+autor: "${author}"
+editorial: "${publisher || ''}"
+resaltados: ${highlightsCounter}
+origen: Kindle
 tags:
   - Kindle
-  - ${author}
-  - ${bookTitle}
-FechaImportación: ${new Date().toISOString().split('T')[0]}
+  - "${author}"
+  - "${bookTitle}"
+fechaImportación: "${new Date().toISOString().split('T')[0]}"
 ---\n`;
 
 		try {
