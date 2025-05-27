@@ -1,8 +1,6 @@
 import { Plugin, Notice , App, PluginSettingTab, Setting, TFolder, Modal } from "obsidian";
 import * as cheerio from "cheerio";
 
-
-
 interface KindleHighlightsSettings {
 	path: string;
 }
@@ -30,20 +28,14 @@ export default class KindleHighlightsPlugin extends Plugin {
 		});
 
 		this.addSettingTab(new KindleHighlightsSettingsTab(this.app, this));
-
-		
 	}
 
 	async handleFileLoad(fileContents: string | ArrayBuffer | null) {
 		if (!fileContents) return;
 
 		const $ = cheerio.load(fileContents as string);
-		const bookTitle = $(".bookTitle")
-			.text()
-			.trim()
-			.replace(/[\\/*<>:|?"]/g, "");
-		const author = $(".authors").text().trim();
-		author.replace(/[\\/*<>:|?"]/g, "");
+		const bookTitle = $(".bookTitle").text().trim().replace(/[\\/*<>:|?"]/g, "");
+		const author = $(".authors").text().trim().replace(/[\\/*<>:|?"]/g, "");
 
 		let content = "";
 		let highlightsCounter = 0;
@@ -51,27 +43,18 @@ export default class KindleHighlightsPlugin extends Plugin {
 		$(".noteHeading").each((index, element) => {
 			if ($(element).children("span").length !== 1) return;
 
-			const pageMatch = $(element)
-				.text()
-				.match(/(Page|Location) (\d+)/);
+			const pageMatch = $(element).text().match(/(Page|Location) (\d+)/);
 			const pageNumber = pageMatch ? pageMatch[2] : null;
 			const noteText = $(element).next(".noteText").text().trim();
 
-			content += `${noteText}\n- ${pageMatch ? pageMatch[1] : ""} ${
-				pageNumber || ""
-			}\n\n`;
+			content += `${noteText}\n- ${pageMatch ? pageMatch[1] : ""} ${pageNumber || ""}\n\n`;
 
 			if (
 				$(element).next().next().children("span").length === 0 &&
 				!$(element).next().next().hasClass("sectionHeading") &&
 				$(element).next().next().length !== 0
 			) {
-				const userNote = $(element)
-					.next()
-					.next()
-					.next(".noteText")
-					.text()
-					.trim();
+				const userNote = $(element).next().next().next(".noteText").text().trim();
 				content += `>[!${userNote}] \n\n`;
 			}
 
@@ -79,7 +62,17 @@ export default class KindleHighlightsPlugin extends Plugin {
 			highlightsCounter++;
 		});
 
-		const frontmatter = `---\nauthor: "[[${author}]]"\nhighlights: ${highlightsCounter}\n---\n`;
+		const frontmatter = `---
+Título: "${bookTitle}"
+Autor: "${author}"
+Notas: ${highlightsCounter}
+Origen: Kindle
+tags:
+  - Kindle
+  - ${author}
+  - ${bookTitle}
+FechaImportación: ${new Date().toISOString().split('T')[0]}
+---\n`;
 
 		try {
 			await this.app.vault.create(
@@ -88,38 +81,27 @@ export default class KindleHighlightsPlugin extends Plugin {
 			);
 			new Notice("File created");
 		} catch (error) {
-			
-			if(error.code === "ENOENT")
-			{
+			if (error.code === "ENOENT") {
 				new Notice("Invalid path. Please select a valid folder in the plugin settings");
-			}else{
+			} else {
 				new Notice("File already exists");
 			}
 		}
 	}
 
-	onunload() {
-
-	}
+	onunload() {}
 
 	async loadSettings() {
-		this.settings = Object.assign(
-			{},
-			DEFAULT_SETTINGS,
-			await this.loadData()
-		);
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 	}
 
 	async saveSettings() {
 		await this.saveData(this.settings);
 	}
-
-	
 }
 
 class FilePickerModal extends Modal {
-	callback: (value: File) => void; // Add this line
-
+	callback: (value: File) => void;
 
 	constructor(app: App, callback: (value: File) => void){
 		super(app);
@@ -128,7 +110,7 @@ class FilePickerModal extends Modal {
 
 	onOpen() {
 		const { contentEl } = this;
-	
+
 		contentEl.createEl("h1", { text: "Import Highlights from HTML file" });
 		contentEl.createEl("br");
 		contentEl.createEl("p", { text: "Select your kindle html file:"});
@@ -138,8 +120,6 @@ class FilePickerModal extends Modal {
 		});
 		contentEl.createEl("br");
 		contentEl.createEl("br");
-		
-	
 
 		const button = contentEl.createEl("button", {
 			text: "Import Highlights from the file",
@@ -148,8 +128,8 @@ class FilePickerModal extends Modal {
 			const reader = new FileReader();
 
 			if (input.files) {
-				reader.readAsText(input.files[0]);	
-				this.callback(input.files[0]);	
+				reader.readAsText(input.files[0]);    
+				this.callback(input.files[0]);    
 				this.close();
 			}
 		});
@@ -175,11 +155,7 @@ class KindleHighlightsSettingsTab extends PluginSettingTab {
 
 		const folders: string[] = this.app.vault
 			.getAllLoadedFiles()
-			.filter(
-				(file) =>
-					file instanceof
-					TFolder
-			)
+			.filter((file) => file instanceof TFolder)
 			.map((folderFile) => folderFile.path);
 
 		new Setting(containerEl)
@@ -187,10 +163,7 @@ class KindleHighlightsSettingsTab extends PluginSettingTab {
 			.setDesc("Select the folder where you want to save your highlights")
 			.addDropdown((dropdown) => {
 				dropdown.addOptions({
-					...folders.reduce(
-						(acc, cur) => ({ ...acc, [cur]: cur }),
-						{}
-					),
+					...folders.reduce((acc, cur) => ({ ...acc, [cur]: cur }), {}),
 				});
 				dropdown.setValue(this.plugin.settings.path);
 				dropdown.onChange(async (value) => {
@@ -198,8 +171,5 @@ class KindleHighlightsSettingsTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				});
 			});
-		
 	}
 }
-
-
