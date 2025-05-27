@@ -36,6 +36,7 @@ export default class KindleHighlightsPlugin extends Plugin {
 		const $ = cheerio.load(fileContents as string);
 		const bookTitle = $(".bookTitle").text().trim().replace(/[\\/*<>:|?"]/g, "");
 		const author = $(".authors").text().trim().replace(/[\\/*<>:|?"]/g, "");
+		const publisher = $(".publisher").text().trim().replace(/[\\/*<>:|?"]/g, "");
 
 		let content = "";
 		let highlightsCounter = 0;
@@ -65,7 +66,7 @@ export default class KindleHighlightsPlugin extends Plugin {
 		const frontmatter = `---
 título: "${bookTitle}"
 autor: "${author}"
-editorial: "${publisher || ''}"
+editorial: "${publisher}"
 resaltados: ${highlightsCounter}
 origen: Kindle
 tags:
@@ -80,12 +81,12 @@ fechaImportación: "${new Date().toISOString().split('T')[0]}"
 				`${this.settings.path}/${bookTitle}.md`,
 				`${frontmatter}\n\n## Highlights \n\n${content}`
 			);
-			new Notice("File created");
-		} catch (error) {
+			new Notice("Archivo creado correctamente");
+		} catch (error: any) {
 			if (error.code === "ENOENT") {
-				new Notice("Invalid path. Please select a valid folder in the plugin settings");
+				new Notice("Ruta inválida. Selecciona una carpeta válida en la configuración del plugin");
 			} else {
-				new Notice("File already exists");
+				new Notice("El archivo ya existe");
 			}
 		}
 	}
@@ -112,9 +113,9 @@ class FilePickerModal extends Modal {
 	onOpen() {
 		const { contentEl } = this;
 
-		contentEl.createEl("h1", { text: "Import Highlights from HTML file" });
+		contentEl.createEl("h1", { text: "Importar resaltados desde archivo HTML" });
 		contentEl.createEl("br");
-		contentEl.createEl("p", { text: "Select your kindle html file:"});
+		contentEl.createEl("p", { text: "Selecciona tu archivo HTML de Kindle:" });
 		const input = contentEl.createEl("input", {
 			type: "file",
 			attr: { single: "" },
@@ -123,14 +124,13 @@ class FilePickerModal extends Modal {
 		contentEl.createEl("br");
 
 		const button = contentEl.createEl("button", {
-			text: "Import Highlights from the file",
+			text: "Importar resaltados",
 		});
 		button.addEventListener("click", () => {
-			const reader = new FileReader();
-
 			if (input.files) {
-				reader.readAsText(input.files[0]);    
-				this.callback(input.files[0]);    
+				const reader = new FileReader();
+				reader.onload = () => this.callback(input.files![0]);
+				reader.readAsText(input.files[0]);
 				this.close();
 			}
 		});
@@ -150,7 +150,7 @@ class KindleHighlightsSettingsTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
-	display():void {
+	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
 
@@ -160,8 +160,8 @@ class KindleHighlightsSettingsTab extends PluginSettingTab {
 			.map((folderFile) => folderFile.path);
 
 		new Setting(containerEl)
-			.setName("File path")
-			.setDesc("Select the folder where you want to save your highlights")
+			.setName("Ruta de archivos")
+			.setDesc("Selecciona la carpeta donde quieres guardar los resaltados")
 			.addDropdown((dropdown) => {
 				dropdown.addOptions({
 					...folders.reduce((acc, cur) => ({ ...acc, [cur]: cur }), {}),
