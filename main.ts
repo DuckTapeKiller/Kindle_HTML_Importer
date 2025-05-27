@@ -71,8 +71,8 @@ resaltados: ${highlightsCounter}
 origen: Kindle
 tags:
   - Kindle
-  - "${author}"
-  - "${bookTitle}"
+  - ${author.replace(/\s+/g, "_")}
+  - ${bookTitle.replace(/\s+/g, "_")}
 fechaImportación: "${new Date().toISOString().split('T')[0]}"
 ---\n`;
 
